@@ -38,8 +38,10 @@ def read_next_sensor_data(sensor_index):
         else:
             SENSOR_DATA[sensor_index][0] = SensorRowData(timestamp, id, temperature, humidity, xpos, ypos)
         print("Data for sensor {} read successfully.".format(sensor_index + 1))
+        return True
     else:
         print("End of file reached for sensor {}.".format(sensor_index + 1))
+        return False
 
 def update_sensor_data_by_time():
     global TIME
@@ -51,8 +53,7 @@ def update_sensor_data_by_time():
                 update_need=False
                 break
         if(update_need):
-            read_next_sensor_data(i)
-            update_happened=True
+            update_happened=read_next_sensor_data(i)
     if(update_happened):
         update_sensor_data_by_time()
 
