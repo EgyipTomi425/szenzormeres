@@ -119,16 +119,16 @@ def plot_heatmap(X, Y, Z_temperature, Z_humidity, sensor_positions):
     plt.colorbar(label='Hőmérséklet')
     plt.xlabel('X pozíció')
     plt.ylabel('Y pozíció')
-    plt.title('Hőmérsékleti térkép a teremben')
+    plt.title(f"Hőmérsékleti térkép a teremben - Idő: {TIME.strftime('%H:%M:%S')}")
 
     # Második subplot a páratartalomra
     plt.subplot(2, 1, 2)  # Két sor, egy oszlop, második subplot
     plt.scatter(sensor_x_positions, sensor_y_positions, color='black', marker='x')
-    plt.imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet', vmin=50, vmax=25)
+    plt.imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet_r', vmin=50, vmax=25)
     plt.colorbar(label='Páratartalom')
     plt.xlabel('X pozíció')
     plt.ylabel('Y pozíció')
-    plt.title('Páratartalom térkép a teremben')
+    plt.title(f"Páratartalom térkép a teremben - Idő: {TIME.strftime('%H:%M:%S')}")
 
     plt.tight_layout()  # A grafikonok közötti hely optimalizálása
     plt.pause(0.1)
