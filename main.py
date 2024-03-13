@@ -124,7 +124,7 @@ def plot_heatmap(X, Y, Z_temperature, Z_humidity, sensor_positions):
     # Második subplot a páratartalomra
     plt.subplot(2, 1, 2)  # Két sor, egy oszlop, második subplot
     plt.scatter(sensor_x_positions, sensor_y_positions, color='black', marker='x')
-    plt.imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet', vmin=25, vmax=50)
+    plt.imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet', vmin=50, vmax=25)
     plt.colorbar(label='Páratartalom')
     plt.xlabel('X pozíció')
     plt.ylabel('Y pozíció')
