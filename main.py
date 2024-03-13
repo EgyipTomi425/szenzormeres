@@ -5,7 +5,7 @@ import pytz
 import numpy as np
 import matplotlib.pyplot as plt
 
-NUM_SENSORS = 4 # Ha növeljük, több szenzort használhatunk szenzor1.csv, szenzor2.csv stb. elnevezés alapon
+NUM_SENSORS = 5 # Ha növeljük, több szenzort használhatunk szenzor1.csv, szenzor2.csv stb. elnevezés alapon
 SENSOR_DATA = [[None, None] for _ in range(NUM_SENSORS)] # Annyira imádom, hogy nincsenek típusok, ez más nyelven sose történne meg
 SENSOR_FILENAMES = ['szenzor{}.csv'.format(i + 1) for i in range(NUM_SENSORS)]
 SENSOR_FILE_HANDLES = [open(filename, 'r') for filename in SENSOR_FILENAMES]
@@ -153,6 +153,7 @@ def setup():
 def main():
     global TIME
     global TIME_PASSING
+    TIME += timedelta(seconds=700)
     for i in range(10000):
         TIME += timedelta(seconds=TIME_PASSING)
         update_sensor_data_by_time()
