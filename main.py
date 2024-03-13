@@ -9,7 +9,7 @@ NUM_SENSORS = 5 # Ha növeljük, több szenzort használhatunk szenzor1.csv, sze
 SENSOR_DATA = [[None, None] for _ in range(NUM_SENSORS)] # Annyira imádom, hogy nincsenek típusok, ez más nyelven sose történne meg
 SENSOR_FILENAMES = ['szenzor{}.csv'.format(i + 1) for i in range(NUM_SENSORS)]
 SENSOR_FILE_HANDLES = [open(filename, 'r') for filename in SENSOR_FILENAMES]
-TIME = datetime(1970, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
+TIME = datetime(1970, 1, 1, 0, 0, 0, tzinfo=pytz.timezone('CET'))
 TIME_PASSING = 10 # Másodperc
 TIME_EPSILON = 3*TIME_PASSING
 ROOM_WIDTH = 300
@@ -17,7 +17,7 @@ ROOM_HEIGHT = 100
 
 class SensorRowData:
     def __init__(self, timestamp, id, temperature, humidity, xpos, ypos):
-        self.timestamp = parse(timestamp)
+        self.timestamp = parse(timestamp).astimezone(pytz.timezone('CET'))
         self.id = id
         self.temperature = temperature
         self.humidity = humidity
