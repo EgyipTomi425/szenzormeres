@@ -14,6 +14,7 @@ TIME_PASSING = 10 # Másodperc
 TIME_EPSILON = 3*TIME_PASSING
 ROOM_WIDTH = 300
 ROOM_HEIGHT = 100
+ALL_DATA = []
 
 class SensorRowData:
     def __init__(self, timestamp, id, temperature, humidity, xpos, ypos):
@@ -57,25 +58,18 @@ def update_sensor_data_by_time():
     if(update_happened):
         update_sensor_data_by_time()
 
-def calculate_heatmap():
+def get_latest_data():
     global SENSOR_DATA
     global ROOM_WIDTH
     global ROOM_HEIGHT
     global TIME
     global TIME_EPSILON
 
-    # Térkép mérete
-    num_points_width = ROOM_WIDTH
-    num_points_height = ROOM_HEIGHT
-
-    # Létrehozunk két üres mátrixot a hőtérképeknek
-    Z_temperature = np.zeros((num_points_height, num_points_width))
-    Z_humidity = np.zeros((num_points_height, num_points_width))
-
-    # Sensor pozíciók inicializálása és legfrissebb adatok felhasználása
+    # Szenzor pozíciók inicializálása és legfrissebb adatok felhasználása
     sensor_positions = []
     latest_temperatures = []
     latest_humidities = []
+    sensor_ids = []
 
     for sensor_data_row in SENSOR_DATA:
         latest_data = None
@@ -86,36 +80,42 @@ def calculate_heatmap():
                     latest_data = data_point
 
         if latest_data is not None:
-            xpos = int(latest_data.xpos)
-            ypos = int(latest_data.ypos)
-            temperature = float(latest_data.temperature)
-            humidity = float(latest_data.humidity)
-            sensor_positions.append((xpos, ypos))
-            latest_temperatures.append(temperature)
-            latest_humidities.append(humidity)
+            sensor_positions.append((int(latest_data.xpos), int(latest_data.ypos)))
+            latest_temperatures.append(float(latest_data.temperature))
+            latest_humidities.append(float(latest_data.humidity))
+            sensor_ids.append(latest_data.id)  # Hozzáadjuk az azonosítót a listához
+    
+    # Visszaadunk egy tuple-t, ami tartalmazza a négy listát
+    return (sensor_positions, latest_temperatures, latest_humidities, sensor_ids)
+    
+def calculate_heatmap(data_tuple):
+    sensor_positions, latest_temperatures, latest_humidities, sensor_ids = data_tuple
 
-    # Hőmérsékleti és páratartalmi térképek számítása
-    for i in range(num_points_height):
-        for j in range(num_points_width):
+    Z_temperature = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
+    Z_humidity = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
+
+    for i in range(ROOM_HEIGHT):
+        for j in range(ROOM_WIDTH):
             distances = np.linalg.norm(np.array(sensor_positions) - [j, i], axis=1)
             weights = 1 / (distances + 1e-6)
             Z_temperature[i, j] = np.sum(weights * np.array(latest_temperatures)) / np.sum(weights)
             Z_humidity[i, j] = np.sum(weights * np.array(latest_humidities)) / np.sum(weights)
 
-    # Visszaadjuk a térképek X és Y koordinátáit, valamint a szenzorok pozícióit is
-    X, Y = np.meshgrid(np.linspace(0, ROOM_WIDTH, num_points_width), np.linspace(0, ROOM_HEIGHT, num_points_height))
+    X, Y = np.meshgrid(np.linspace(0, ROOM_WIDTH, ROOM_WIDTH), np.linspace(0, ROOM_HEIGHT, ROOM_HEIGHT))
 
-    return X, Y, Z_temperature, Z_humidity, sensor_positions
+    # Visszaadjuk az X, Y koordinátákat, a hőmérsékleti és páratartalmi adatokat, a szenzor pozíciókat és az azonosítókat
+    return X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids
 
-
-def plot_heatmap(X, Y, Z_temperature, Z_humidity, sensor_positions):
+def plot_heatmap(data_tuple):
+    X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids = data_tuple
     plt.clf()
 
     # Első subplot a hőmérsékletre
-    plt.subplot(2, 1, 1)  # Két sor, egy oszlop, első subplot
-    sensor_x_positions = [pos[0] for pos in sensor_positions]
-    sensor_y_positions = [pos[1] for pos in sensor_positions]
-    plt.scatter(sensor_x_positions, sensor_y_positions, color='black', marker='x')
+    plt.subplot(2, 1, 1)
+    for (x, y), sensor_id in zip(sensor_positions, sensor_ids):
+        print(sensor_id)
+        plt.scatter(x, y, color='black', marker='x')
+        plt.text(x, y, str(sensor_id), color='black', fontsize=9)  # Szenzor ID hozzáadása
     plt.imshow(Z_temperature, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet', vmin=15, vmax=25)
     plt.colorbar(label='Hőmérséklet')
     plt.xlabel('X pozíció')
@@ -123,15 +123,17 @@ def plot_heatmap(X, Y, Z_temperature, Z_humidity, sensor_positions):
     plt.title(f"Hőmérsékleti térkép a teremben - Idő: {TIME.strftime('%H:%M:%S')}")
 
     # Második subplot a páratartalomra
-    plt.subplot(2, 1, 2)  # Két sor, egy oszlop, második subplot
-    plt.scatter(sensor_x_positions, sensor_y_positions, color='black', marker='x')
+    plt.subplot(2, 1, 2)
+    for (x, y), sensor_id in zip(sensor_positions, sensor_ids):
+        plt.scatter(x, y, color='black', marker='x')
+        plt.text(x, y, str(sensor_id), color='black', fontsize=9)  # Szenzor ID hozzáadása
     plt.imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet_r', vmin=50, vmax=25)
     plt.colorbar(label='Páratartalom')
     plt.xlabel('X pozíció')
     plt.ylabel('Y pozíció')
     plt.title(f"Páratartalom térkép a teremben - Idő: {TIME.strftime('%H:%M:%S')}")
 
-    plt.tight_layout()  # A grafikonok közötti hely optimalizálása
+    plt.tight_layout()
     plt.pause(0.1)
 
 def setup():
@@ -154,13 +156,14 @@ def setup():
 def main():
     global TIME
     global TIME_PASSING
+    global ALL_DATA
     TIME += timedelta(seconds=700)
     for i in range(10000):
         TIME += timedelta(seconds=TIME_PASSING)
         update_sensor_data_by_time()
         print("Actual TIME: ", TIME)
-        X, Y, Z_temperature, Z_humidity, sensor_positions = calculate_heatmap()
-        plot_heatmap(X, Y, Z_temperature, Z_humidity, sensor_positions)
+        ALL_DATA.append(get_latest_data())
+        plot_heatmap(calculate_heatmap(ALL_DATA[-1]))
 
 if __name__ == "__main__":
     for sensor_index in range(NUM_SENSORS):
