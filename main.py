@@ -4,6 +4,8 @@ from datetime import timedelta
 import pytz
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from collections import defaultdict
 
 NUM_SENSORS = 5 # Ha növeljük, több szenzort használhatunk szenzor1.csv, szenzor2.csv stb. elnevezés alapon
 SENSOR_DATA = [[None, None] for _ in range(NUM_SENSORS)] # Annyira imádom, hogy nincsenek típusok, ez más nyelven sose történne meg
@@ -85,10 +87,10 @@ def get_latest_data():
             sensor_ids.append(i+1)
     
     # Visszaadunk egy tuple-t, ami tartalmazza a négy listát
-    return (sensor_positions, latest_temperatures, latest_humidities, sensor_ids)
+    return (sensor_positions, latest_temperatures, latest_humidities, sensor_ids, TIME)
     
 def calculate_heatmap(data_tuple):
-    sensor_positions, latest_temperatures, latest_humidities, sensor_ids = data_tuple
+    sensor_positions, latest_temperatures, latest_humidities, sensor_ids, TIME = data_tuple
 
     Z_temperature = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
     Z_humidity = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
@@ -103,10 +105,10 @@ def calculate_heatmap(data_tuple):
     X, Y = np.meshgrid(np.linspace(0, ROOM_WIDTH, ROOM_WIDTH), np.linspace(0, ROOM_HEIGHT, ROOM_HEIGHT))
 
     # Visszaadjuk az X, Y koordinátákat, a hőmérsékleti és páratartalmi adatokat, a szenzor pozíciókat és az azonosítókat
-    return X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids
+    return X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids, TIME
 
 def plot_heatmap(data_tuple):
-    X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids = data_tuple
+    X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids, TIME = data_tuple
     plt.clf()
 
     dx, dy = 3, 3  # Eltolás mértékének beállítása
@@ -135,6 +137,28 @@ def plot_heatmap(data_tuple):
 
     plt.tight_layout()
     plt.pause(0.1)
+    
+    # Inicializáljuk az adatstruktúrát
+    szenzor_adatok = defaultdict(lambda: {'idopontok': [], 'homersletek': [], 'paratartalmak': []})
+
+    # Végigmegyünk az összes adaton az ALL_DATA-ban
+    for data in ALL_DATA:
+        sensor_positions, latest_temperatures, latest_humidities, sensor_ids, time = data
+
+        # Minden egyes szenzorhoz hozzáadjuk az adatokat
+        for i, sensor_id in enumerate(sensor_ids):
+            szenzor_adatok[sensor_id]['idopontok'].append(time)
+            szenzor_adatok[sensor_id]['homersletek'].append(latest_temperatures[i] if i < len(latest_temperatures) else None)
+            szenzor_adatok[sensor_id]['paratartalmak'].append(latest_humidities[i] if i < len(latest_humidities) else None)
+
+    # Ellenőrizzük az adatstruktúrát
+    print("\n")
+    for sensor_id, adat in szenzor_adatok.items():
+        print(f"Szenzor ID: {sensor_id}")
+        print("Időpontok:", [ido.strftime('%H:%M:%S') for ido in adat['idopontok']])
+        print("Hőmérsékletek:", adat['homersletek'])
+        print("Páratartalmak:", adat['paratartalmak'])
+        print("\n")
 
 def setup():
     # Szükség van kezdeti adatokra
