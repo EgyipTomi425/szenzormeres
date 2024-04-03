@@ -71,19 +71,18 @@ def get_latest_data():
     latest_humidities = []
     sensor_ids = []
 
-    for sensor_data_row in SENSOR_DATA:
+    for i,sensor_data_row in enumerate(SENSOR_DATA):
         latest_data = None
         for data_point in sensor_data_row:
             time_difference = abs((data_point.timestamp - TIME).total_seconds())
             if time_difference <= TIME_EPSILON:
                 if latest_data is None or data_point.timestamp > latest_data.timestamp:
                     latest_data = data_point
-
         if latest_data is not None:
             sensor_positions.append((int(latest_data.xpos), int(latest_data.ypos)))
             latest_temperatures.append(float(latest_data.temperature))
             latest_humidities.append(float(latest_data.humidity))
-            sensor_ids.append(latest_data.id)  # Hozzáadjuk az azonosítót a listához
+            sensor_ids.append(i+1)
     
     # Visszaadunk egy tuple-t, ami tartalmazza a négy listát
     return (sensor_positions, latest_temperatures, latest_humidities, sensor_ids)
@@ -110,12 +109,13 @@ def plot_heatmap(data_tuple):
     X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids = data_tuple
     plt.clf()
 
+    dx, dy = 3, 3  # Eltolás mértékének beállítása
+
     # Első subplot a hőmérsékletre
     plt.subplot(2, 1, 1)
     for (x, y), sensor_id in zip(sensor_positions, sensor_ids):
-        print(sensor_id)
         plt.scatter(x, y, color='black', marker='x')
-        plt.text(x, y, str(sensor_id), color='black', fontsize=9)  # Szenzor ID hozzáadása
+        plt.text(x + dx, y + dy, str(sensor_id), color='black', fontsize=12, ha='left', va='bottom')  # Szenzor ID hozzáadása
     plt.imshow(Z_temperature, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet', vmin=15, vmax=25)
     plt.colorbar(label='Hőmérséklet')
     plt.xlabel('X pozíció')
@@ -126,7 +126,7 @@ def plot_heatmap(data_tuple):
     plt.subplot(2, 1, 2)
     for (x, y), sensor_id in zip(sensor_positions, sensor_ids):
         plt.scatter(x, y, color='black', marker='x')
-        plt.text(x, y, str(sensor_id), color='black', fontsize=9)  # Szenzor ID hozzáadása
+        plt.text(x + dx, y + dy, str(sensor_id), color='black', fontsize=12, ha='left', va='bottom')  # Szenzor ID hozzáadása
     plt.imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet_r', vmin=50, vmax=25)
     plt.colorbar(label='Páratartalom')
     plt.xlabel('X pozíció')
