@@ -5,6 +5,7 @@ import pytz
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.dates import DateFormatter
 from collections import defaultdict
 
 NUM_SENSORS = 5 # Ha növeljük, több szenzort használhatunk szenzor1.csv, szenzor2.csv stb. elnevezés alapon
@@ -17,6 +18,12 @@ TIME_EPSILON = 3*TIME_PASSING
 ROOM_WIDTH = 300
 ROOM_HEIGHT = 100
 ALL_DATA = []
+
+plt.rcParams['toolbar'] = 'None'
+fig, ax = plt.subplots(2, 2, figsize=(15, 10))
+fig.suptitle('Szenzorok mérési adatainak vizualizációja\n Idő: ' + TIME.strftime('%Y-%m-%d %H:%M:%S'), fontsize=16, color='white')
+is_colorbar_created = [False, False]
+date_format = DateFormatter('%Y.%m.%d\n%H:%M:%S', tz=pytz.timezone('CET'))
 
 class SensorRowData:
     def __init__(self, timestamp, id, temperature, humidity, xpos, ypos):
@@ -106,59 +113,99 @@ def calculate_heatmap(data_tuple):
 
     # Visszaadjuk az X, Y koordinátákat, a hőmérsékleti és páratartalmi adatokat, a szenzor pozíciókat és az azonosítókat
     return X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids, TIME
-
-def plot_heatmap(data_tuple):
-    X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids, TIME = data_tuple
-    plt.clf()
-
-    dx, dy = 3, 3  # Eltolás mértékének beállítása
-
-    # Első subplot a hőmérsékletre
-    plt.subplot(2, 1, 1)
-    for (x, y), sensor_id in zip(sensor_positions, sensor_ids):
-        plt.scatter(x, y, color='black', marker='x')
-        plt.text(x + dx, y + dy, str(sensor_id), color='black', fontsize=12, ha='left', va='bottom')  # Szenzor ID hozzáadása
-    plt.imshow(Z_temperature, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet', vmin=15, vmax=25)
-    plt.colorbar(label='Hőmérséklet')
-    plt.xlabel('X pozíció')
-    plt.ylabel('Y pozíció')
-    plt.title(f"Hőmérsékleti térkép a teremben - Idő: {TIME.strftime('%H:%M:%S')}")
-
-    # Második subplot a páratartalomra
-    plt.subplot(2, 1, 2)
-    for (x, y), sensor_id in zip(sensor_positions, sensor_ids):
-        plt.scatter(x, y, color='black', marker='x')
-        plt.text(x + dx, y + dy, str(sensor_id), color='black', fontsize=12, ha='left', va='bottom')  # Szenzor ID hozzáadása
-    plt.imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet_r', vmin=50, vmax=25)
-    plt.colorbar(label='Páratartalom')
-    plt.xlabel('X pozíció')
-    plt.ylabel('Y pozíció')
-    plt.title(f"Páratartalom térkép a teremben - Idő: {TIME.strftime('%H:%M:%S')}")
-
-    plt.tight_layout()
-    plt.pause(0.1)
     
-    # Inicializáljuk az adatstruktúrát
-    szenzor_adatok = defaultdict(lambda: {'idopontok': [], 'homersletek': [], 'paratartalmak': []})
+def plot_heatmap(data_tuple):
+    global fig
+    global ax
+    X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids, TIME = data_tuple
+    fig.suptitle('Szenzorok mérési adatainak vizualizációja\n Idő: ' + TIME.strftime('%Y-%m-%d %H:%M:%S'), fontsize=16, color='white')
+    fig.patch.set_facecolor('black')
+    for a in ax.flat:
+        a.set_facecolor('black')
+    sensor_data_structure = defaultdict(lambda: {'times': [], 'temperatures': [], 'humidities': []})
 
-    # Végigmegyünk az összes adaton az ALL_DATA-ban
     for data in ALL_DATA:
         sensor_positions, latest_temperatures, latest_humidities, sensor_ids, time = data
-
-        # Minden egyes szenzorhoz hozzáadjuk az adatokat
         for i, sensor_id in enumerate(sensor_ids):
-            szenzor_adatok[sensor_id]['idopontok'].append(time)
-            szenzor_adatok[sensor_id]['homersletek'].append(latest_temperatures[i] if i < len(latest_temperatures) else None)
-            szenzor_adatok[sensor_id]['paratartalmak'].append(latest_humidities[i] if i < len(latest_humidities) else None)
+            sensor_data_structure[sensor_id]['times'].append(time)
+            sensor_data_structure[sensor_id]['temperatures'].append(latest_temperatures[i] if i < len(latest_temperatures) else None)
+            sensor_data_structure[sensor_id]['humidities'].append(latest_humidities[i] if i < len(latest_humidities) else None)
+    
+    for axs in ax.flat:
+        axs.clear()
+    
+    dx, dy = 3, 3 
 
-    # Ellenőrizzük az adatstruktúrát
+    ax[0, 0].scatter([pos[0] for pos in sensor_positions], [pos[1] for pos in sensor_positions], color='black', marker='x')
+    for pos, sensor_id in zip(sensor_positions, sensor_ids):
+        ax[0, 0].text(pos[0] + dx, pos[1] + dy, str(sensor_id), color='black', fontsize=12, ha='left', va='bottom')
+    cax1 = ax[0, 0].imshow(Z_temperature, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet', vmin=15, vmax=25)
+    if not is_colorbar_created[0]:
+        colorbar1 = plt.colorbar(cax1, ax=ax[0, 0])
+        colorbar1.set_label('Hőmérséklet (°C)', color='white')
+        colorbar1.ax.yaxis.set_tick_params(color='white')
+        colorbar1.ax.yaxis.label.set_color('white')
+        # Az összes tick címke színének beállítása fehérre
+        for label in colorbar1.ax.get_yticklabels():
+            label.set_color('white')
+        is_colorbar_created[0] = True
+    ax[0, 0].set_title('Hőmérsékleti térkép')
+    ax[0, 0].set_xlabel('X pozíció')
+    ax[0, 0].set_ylabel('Y pozíció')
+
+    ax[1, 0].scatter([pos[0] for pos in sensor_positions], [pos[1] for pos in sensor_positions], color='black', marker='x')
+    for pos, sensor_id in zip(sensor_positions, sensor_ids):
+        ax[1, 0].text(pos[0] + dx, pos[1] + dy, str(sensor_id), color='black', fontsize=12, ha='left', va='bottom')
+    cax2 = ax[1, 0].imshow(Z_humidity, extent=(0, ROOM_WIDTH, ROOM_HEIGHT, 0), origin='upper', cmap='jet_r', vmin=20, vmax=60)
+    if not is_colorbar_created[1]:
+        colorbar2 = plt.colorbar(cax2, ax=ax[1, 0])
+        colorbar2.set_label('Páratartalom (%)', color='white')
+        colorbar2.ax.yaxis.set_tick_params(color='white')
+        colorbar2.ax.yaxis.label.set_color('white')
+        for label in colorbar2.ax.get_yticklabels():
+            label.set_color('white')
+        is_colorbar_created[1] = True
+    ax[1, 0].set_title('Páratartalom térkép')
+    ax[1, 0].set_xlabel('X pozíció')
+    ax[1, 0].set_ylabel('Y pozíció')
+    
+    global date_format
+    
+    for sensor_id, adat in sensor_data_structure.items():
+        ax[0, 1].plot(adat['times'], adat['temperatures'], label=f'Szenzor {sensor_id}')
+    ax[0, 1].set_title('Hőmérséklet változása időben')
+    ax[0, 1].set_xlabel('Idő')
+    ax[0, 1].set_ylabel('Hőmérséklet (°C)')
+    ax[0, 1].legend(loc='lower left')
+    ax[0, 1].xaxis.set_major_formatter(date_format) 
+
+    for sensor_id, adat in sensor_data_structure.items():
+        ax[1, 1].plot(adat['times'], adat['humidities'], label=f'Szenzor {sensor_id}')
+    ax[1, 1].set_title('Páratartalom változása időben')
+    ax[1, 1].set_xlabel('Idő')
+    ax[1, 1].set_ylabel('Páratartalom (%)')
+    ax[1, 1].legend(loc='lower left')
+    ax[1, 1].xaxis.set_major_formatter(date_format)
+
+    for a in ax.flat:
+        a.xaxis.label.set_color('white')
+        a.yaxis.label.set_color('white')
+        a.title.set_color('white')
+        for spine in a.spines.values():
+            spine.set_edgecolor('white')
+        a.tick_params(colors='white', which='both')
+    
+    plt.tight_layout()
+    
     print("\n")
-    for sensor_id, adat in szenzor_adatok.items():
+    for sensor_id, adat in sensor_data_structure.items():
         print(f"Szenzor ID: {sensor_id}")
-        print("Időpontok:", [ido.strftime('%H:%M:%S') for ido in adat['idopontok']])
-        print("Hőmérsékletek:", adat['homersletek'])
-        print("Páratartalmak:", adat['paratartalmak'])
+        print("Időpontok:", [ido.strftime('%H:%M:%S') for ido in adat['times']])
+        print("Hőmérsékletek:", adat['temperatures'])
+        print("Páratartalmak:", adat['humidities'])
         print("\n")
+    
+    plt.pause(0.1)
 
 def setup():
     # Szükség van kezdeti adatokra
@@ -167,7 +214,7 @@ def setup():
 
     global TIME
     global TIME_PASSING
-    # Végigmegyünk a szenzor adatokon és megkeressük a legújabb détumot
+    # Végigmegyünk a szenzor adatokon és megkeressük a legújabb dátumot
     for sensor_data in SENSOR_DATA:
         for sensor_row in sensor_data:
             if sensor_row is not None and sensor_row.timestamp > TIME:
@@ -175,7 +222,6 @@ def setup():
     TIME += timedelta(seconds=(0 - TIME.second % TIME_PASSING))
     update_sensor_data_by_time()
     print("Starting TIME:", TIME)
-
 
 def main():
     global TIME
