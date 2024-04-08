@@ -19,7 +19,7 @@ ROOM_WIDTH = 300
 ROOM_HEIGHT = 100
 ALL_DATA = []
 
-plt.rcParams['toolbar'] = 'None'
+plt.rcParams['toolbar'] = 'None'    
 fig, ax = plt.subplots(2, 2, figsize=(15, 10))
 fig.suptitle('Szenzorok mérési adatainak vizualizációja\n Idő: ' + TIME.strftime('%Y-%m-%d %H:%M:%S'), fontsize=16, color='white')
 is_colorbar_created = [False, False]
@@ -105,7 +105,7 @@ def calculate_heatmap(data_tuple):
     for i in range(ROOM_HEIGHT):
         for j in range(ROOM_WIDTH):
             distances = np.linalg.norm(np.array(sensor_positions) - [j, i], axis=1)
-            weights = 1 / (distances + 1e-6)
+            weights = 1 / np.square(distances + 1e-8)
             Z_temperature[i, j] = np.sum(weights * np.array(latest_temperatures)) / np.sum(weights)
             Z_humidity[i, j] = np.sum(weights * np.array(latest_humidities)) / np.sum(weights)
 
