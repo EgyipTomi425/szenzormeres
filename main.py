@@ -7,10 +7,13 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 from collections import defaultdict
+import glob
+import re
 
-NUM_SENSORS = 5 # Ha növeljük, több szenzort használhatunk szenzor1.csv, szenzor2.csv stb. elnevezés alapon
+SENSOR_FILENAMES = sorted(glob.glob('szenzor*.csv'))
+NUM_SENSORS = len(SENSOR_FILENAMES)
 SENSOR_DATA = [[None, None] for _ in range(NUM_SENSORS)] # Annyira imádom, hogy nincsenek típusok, ez más nyelven sose történne meg
-SENSOR_FILENAMES = ['szenzor{}.csv'.format(i + 1) for i in range(NUM_SENSORS)]
+SENSOR_IDS = [int(re.search(r'szenzor(\d+).csv', filename).group(1)) for filename in SENSOR_FILENAMES]
 SENSOR_FILE_HANDLES = [open(filename, 'r') for filename in SENSOR_FILENAMES]
 TIME = datetime(1970, 1, 1, 0, 0, 0, tzinfo=pytz.timezone('CET'))
 TIME_PASSING = 10 # Másodperc
@@ -55,6 +58,7 @@ def read_next_sensor_data(sensor_index):
 
 def update_sensor_data_by_time():
     global TIME
+    global SENSOR_IDS
     update_happened=False
     for i in range(len(SENSOR_DATA)):
         update_need=True
@@ -73,6 +77,7 @@ def get_latest_data():
     global ROOM_HEIGHT
     global TIME
     global TIME_EPSILON
+    global SENSOR_IDS
 
     # Szenzor pozíciók inicializálása és legfrissebb adatok felhasználása
     sensor_positions = []
@@ -91,7 +96,7 @@ def get_latest_data():
             sensor_positions.append((int(latest_data.xpos), int(latest_data.ypos)))
             latest_temperatures.append(float(latest_data.temperature))
             latest_humidities.append(float(latest_data.humidity))
-            sensor_ids.append(i+1)
+            sensor_ids.append(SENSOR_IDS[i])
     
     # Visszaadunk egy tuple-t, ami tartalmazza a négy listát
     return (sensor_positions, latest_temperatures, latest_humidities, sensor_ids, TIME)
