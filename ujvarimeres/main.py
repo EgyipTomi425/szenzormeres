@@ -16,7 +16,7 @@ SENSOR_DATA = [[None, None] for _ in range(NUM_SENSORS)] # Annyira imádom, hogy
 SENSOR_IDS = [int(re.search(r'szenzor(\d+).csv', filename).group(1)) for filename in SENSOR_FILENAMES]
 SENSOR_FILE_HANDLES = [open(filename, 'r') for filename in SENSOR_FILENAMES]
 TIME = datetime(1970, 1, 1, 0, 0, 0, tzinfo=pytz.timezone('CET'))
-TIME_PASSING = 120 # Másodperc
+TIME_PASSING = 1200 # Másodperc
 TIME_EPSILON = 3*TIME_PASSING
 ROOM_WIDTH = 300
 ROOM_HEIGHT = 100
@@ -50,26 +50,37 @@ def read_next_sensor_data(sensor_index):
             SENSOR_DATA[sensor_index][1] = SensorRowData(timestamp, id, temperature, humidity, xpos, ypos)
         else:
             SENSOR_DATA[sensor_index][0] = SensorRowData(timestamp, id, temperature, humidity, xpos, ypos)
-        print("Data for sensor {} read successfully.".format(sensor_index + 1))
+        
+        parsed_timestamp = parse(timestamp)
+        formatted_timestamp = parsed_timestamp.strftime('%Y-%m-%d %H:%M:%S') + " (CET)"
+        print(f"Data for sensor {SENSOR_IDS[sensor_index]} read successfully: Timestamp={formatted_timestamp}, ID={id}, Temperature={temperature}°C, Humidity={humidity}%, Position=({xpos},{ypos})")
         return True
     else:
-        print("End of file reached for sensor {}.".format(sensor_index + 1))
+        print(f"End of file reached for sensor {SENSOR_IDS[sensor_index]}.".format(sensor_index + 1))
         return False
 
 def update_sensor_data_by_time():
     global TIME
-    global SENSOR_IDS
-    update_happened=False
-    for i in range(len(SENSOR_DATA)):
-        update_need=True
-        for j in range(len(SENSOR_DATA[i])):
-            if(SENSOR_DATA[i][j].timestamp>TIME):
-                update_need=False
-                break
-        if(update_need):
-            update_happened=read_next_sensor_data(i)
-    if(update_happened):
-        update_sensor_data_by_time()
+    update_happened = True  # Kezdetben feltételezzük, hogy történhet frissítés
+
+    while update_happened:  # Addig futtatjuk a ciklust, amíg történik frissítés
+        update_happened = False  # Minden ciklus elején alapértelmezésre állítjuk
+
+        for i in range(len(SENSOR_DATA)):  # Minden szenzorhoz
+            update_needed = True  # Feltételezzük, hogy szükség van a frissítésre
+
+            for j in range(len(SENSOR_DATA[i])):  # Mindkét tárolt adatra
+                if SENSOR_DATA[i][j] is not None and SENSOR_DATA[i][j].timestamp > TIME:
+                    update_needed = False  # Ha az adat a TIME utáni, nincs szükség frissítésre
+                    break
+
+            if update_needed:  # Ha frissítés szükséges
+                read_success = read_next_sensor_data(i)  # Új adat beolvasása
+                update_happened |= read_success  # Frissítjük, ha új adatot olvastunk
+
+                if not read_success:  # Ha elérte a fájl végét
+                    break  # Nincs több adat, abbahagyjuk a frissítést
+
 
 def get_latest_data():
     global SENSOR_DATA
@@ -103,6 +114,12 @@ def get_latest_data():
     
 def calculate_heatmap(data_tuple):
     sensor_positions, latest_temperatures, latest_humidities, sensor_ids, TIME = data_tuple
+
+    if not sensor_positions:  # Ha nincsenek pozíciók, térjünk vissza egy alapértelmezett heatmap-el
+        X, Y = np.meshgrid(np.linspace(0, ROOM_WIDTH, ROOM_WIDTH), np.linspace(0, ROOM_HEIGHT, ROOM_HEIGHT))
+        Z_temperature = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
+        Z_humidity = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
+        return X, Y, Z_temperature, Z_humidity, sensor_positions, sensor_ids, TIME
 
     Z_temperature = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
     Z_humidity = np.zeros((ROOM_HEIGHT, ROOM_WIDTH))
@@ -232,7 +249,7 @@ def main():
     global TIME
     global TIME_PASSING
     global ALL_DATA
-    TIME += timedelta(seconds=700)
+    TIME += timedelta(seconds=10) # Kezdőérték, ha nem az elejéről érdekel
     for i in range(10000):
         TIME += timedelta(seconds=TIME_PASSING)
         update_sensor_data_by_time()
