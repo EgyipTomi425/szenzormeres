@@ -82,4 +82,4 @@ Néhány hibakezelés:
 
 Grafikus ábrázolás néhány napi (érvényesnek vett) szenzoradathoz, hogy leteszteljük, valóban nem hibásak-e a szenzorok:
 
-![](../picture.png)
+![](./picture.png)
