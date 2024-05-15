@@ -80,6 +80,6 @@ Néhány hibakezelés:
  - Epsilon segítségével a mérési idők egységessé tevése
  - Ábrázolási és számolási hibakezelések, időléptetés
 
-Grafikus ábrázolás néhány napi (érvényesnek vett) szenzoradathoz:
+Grafikus ábrázolás néhány napi (érvényesnek vett) szenzoradathoz, hogy leteszteljük, valóban nem hibásak-e a szenzorok:
 
 ![](../picture.png)
