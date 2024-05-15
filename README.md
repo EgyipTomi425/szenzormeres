@@ -58,3 +58,28 @@ Porérzékelők:
 ### Összegzés
 
 Az érzékelők, mint a DHT11, fotorezisztorok és porérzékelők, kulcsfontosságú szerepet játszanak a környezeti paraméterek mérésében és monitorozásában. Az ellenállás változásának mérése és annak értelmezése alapvető az ilyen eszközök működésében, és lehetővé teszi számunkra, hogy pontos adatokat kapjunk a hőmérséklet, páratartalom, fényintenzitás és por koncentráció tekintetében. Ezek az érzékelők nemcsak az iparban és kutatásban hasznosak, hanem mindennapi életünk részévé váltak az intelligens otthonok és IoT eszközök terjedésével.
+
+## Grafikus ábrázolás valós mérési adatokhoz
+
+Volt egy csv fájl, ami minden szenzor együttes méréseit tartalmazta, az adatokat meg kellett tiszítani az alábbi módokon, hogy az érvényes mérések között kiszűrjük a jó szenzorokat:
+ - "Warning" és egyébb hiteltelen sorokat érvénytelenné tenni
+ - Szétválasztani az érvényes szenzorokat külön fájlokba
+ - Attribútumokat szűrni, átalakítani, időzónákat lekezelni
+ - Pozíciót rendelni a szenzorokhoz (ha nincs)
+
+Ezután a main.py:
+ - Az idő előrehaladtával felrajzolja a szenzorok adatait
+ - Heatmap-et számol négyzetes távolsági súlyozással
+ - Az adatokat egységes sémára osztja
+ - Mindent logol
+
+Néhány hibakezelés:
+ - Különböző időközi és idejú szenzormérések
+ - Időzóna lekezelése
+ - Szenzorok elhalálozása és újraéledése
+ - Epsilon segítségével a mérési idők egységessé tevése
+ - Ábrázolási és számolási hibakezelések, időléptetés
+
+Grafikus ábrázolás néhány napi (érvényesnek vett) szenzoradathoz:
+
+![](../picture.png)
